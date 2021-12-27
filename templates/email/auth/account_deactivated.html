@@ -1,0 +1,22 @@
+{% extends 'email/base.html' %}
+{% load static %}
+{% block emailheader %}
+    <img class="mx-auto d-block" src="{% static 'assets/img/email/anxiety.png' %}" alt="at-new-product icon">
+    <h3 class="text-center">Your account has been deactivated!</h3>
+{% endblock %}
+{% block emailbody %}
+    <P>
+        <span class="at-email-subject d-block">
+            You can re-activate your account later and if you want.
+        </span>
+        <span class="at-email-em-text d-block">
+            Changed Your Mind?
+        </span>
+        <button class="at-cta btn btn-primary">
+            Activate Now
+        </button>
+        <span class="at-email-message d-block text-center">
+            If you didn't deactivated it by yourself then please contact us soon.
+        </span>
+    </P>
+{% endblock %}

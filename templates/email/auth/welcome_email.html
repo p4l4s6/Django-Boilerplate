@@ -1,0 +1,19 @@
+{% extends 'email/base.html' %}
+{% load static %}
+{% block emailheader %}
+    <img class="mx-auto d-block" src="{% static 'assets/img/email/new-product.png' %}" alt="at-new-product icon">
+    <h3 class="text-center">Congratulations<br><span>Your Account is Registered!</span></h3>
+{% endblock %}
+{% block emailblock %}
+    <P>
+        <span class="at-recipient d-block">
+            Dear <span class="at-recipient-name">{{ data.email }}</span>
+        </span>
+        <span class="at-email-subject d-block">
+            Thank you for registering to <span>{{ website.site_name }}</span>.
+        </span>
+        <button class="at-cta btn btn-primary">
+            Visit {{ website.website_url }}
+        </button>
+    </P>
+{% endblock %}

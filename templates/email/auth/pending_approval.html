@@ -1,0 +1,21 @@
+{% extends 'email/base.html' %}
+{% load static %}
+{% block emailheader %}
+    <img class="mx-auto d-block" src="{% static 'assets/img/email/pending-work.png' %}" alt="at-new-product icon">
+    <h3 class="text-center">Pending for admin approval</h3>
+{% endblock %}
+
+{% block emailbody %}
+    <P>
+        <span class="at-email-subject d-block">
+            Your registration process is completed and your account in under review ,
+        </span>
+        <span class="at-email-message d-block">
+            For further information please contact Arab Tools!
+        </span>
+        <button class="at-cta btn btn-primary">
+            Contact Us
+        </button>
+    </P>
+
+{% endblock %}

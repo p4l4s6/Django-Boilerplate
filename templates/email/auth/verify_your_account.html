@@ -1,0 +1,27 @@
+{% extends 'email/base.html' %}
+{% load static %}
+{% block emailheader %}
+    <img class="mx-auto d-block" src="{% static 'assets/img/email/safety.png' %}" alt="at-new-product icon">
+    <h3 class="text-center">Please Verify Your Account</h3>
+{% endblock %}
+
+{% block emailbody %}
+    <P>
+        <span class="at-recipient d-block">
+            Dear <span class="at-recipient-name">{{ data.email }}</span>
+        </span>
+        <span class="at-email-subject d-block">
+            Thank you for creating your account on {{ website.site_name }}
+        </span>
+        <span class="at-email-message d-block">
+            In order to secure your account , we need to verify your account. Please
+            enter below mentioned 6 digit code into the account verification fields.
+        </span>
+        <span class="at-email-em-text d-block text-center">
+            Verification Code:
+        </span>
+        <a class="at-cta card d-table mx-auto at-sq-box">
+            {{ data.code }}
+        </a>
+    </P>
+{% endblock %}

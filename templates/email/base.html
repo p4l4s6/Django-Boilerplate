@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<!-- End head -->
+<body>
+<section id="ate-wrapper" class="at-section ate-wrapper">
+    <div class="container">
+        <div class="row">
+            <div class="col col-12">
+                <div class="at-element at-email-header">
+                    {% block emailheader %}
+                    {% endblock %}
+                </div>
+                <!-- // end email header -->
+                <div class="at-element at-email-body">
+                    {% block emailbody %}
+                    {% endblock %}
+                </div>
+                <!--// end email body-->
+            </div><!--// end col-->
+        </div><!--// end row-->
+    </div><!--// end container-->
+</section><!--// end header-->
+</body>
+<!-- End body -->
+</html>
