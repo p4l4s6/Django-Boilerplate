@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth.models import BaseUserManager
 
 
@@ -9,6 +11,7 @@ class MyUserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.country_id = 19
+        user.dob = datetime.now().date()
         user.save()
         return user
 

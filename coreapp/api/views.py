@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -7,15 +8,16 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from . import serializers
-from .. import utils, email_utils
+from .. import email_utils, pagination
+from ..utils import auth_utils, otp_utils
 from ..models import Country, LoginHistory
 
 
 class CountryAPI(ModelViewSet):
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly, ]
-    pagination_class = None
     serializer_class = serializers.CountrySerializer
-    queryset = Country.objects.all()
+    pagination_class = pagination.LargeResultsSetPagination
+    queryset = Country.objects.filter(is_active=True)
 
 
 class SignupAPI(APIView):
@@ -31,8 +33,9 @@ class SignupAPI(APIView):
         )
         if serializer.is_valid():
             user = serializer.save()
-            data = utils.process_code(user.email)
-            email_utils.send_account_verify_email(user.email, data)
+            ip, user_agent = auth_utils.get_client_info(request)
+            user_confirmation = otp_utils.create_user_confirmation(user, ip)
+            otp_utils.send_otp(user_confirmation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -47,11 +50,10 @@ class LoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = serializers.LoginSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data['email']
+            mobile = serializer.validated_data['mobile']
             password = serializer.validated_data['password']
-            user = utils.get_user(email)
-            ip, user_agent = utils.get_client_info(request)
-            print(user_agent)
+            user = auth_utils.get_user_by_mobile(mobile)
+            ip, user_agent = auth_utils.get_client_info(request)
             login_history = LoginHistory.objects.create(
                 user=user, ip_address=ip, user_agent=user_agent
             )
@@ -63,14 +65,14 @@ class LoginView(APIView):
                     'mobile': user.mobile,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'image': request.build_absolute_uri(user.image.url) if user.image else None,
+                    'image': user.get_image_url,
                     'gender': user.gender,
                     'wallet': user.wallet,
                     'is_approved': user.is_approved,
                     'is_verified': user.is_verified
                 }
                 if user.is_verified:
-                    token, created = utils.regenerate_token(user=user)
+                    token, created = auth_utils.regenerate_token(user=user)
                     data['token'] = token.key
                 login_history.save()
                 return Response(data, status=status.HTTP_200_OK)
@@ -132,9 +134,11 @@ class ForgetPasswordAPI(APIView):
     def post(self, request):
         serializer = serializers.ForgetPassSerializer(data=request.data, context={"request": self.request})
         if serializer.is_valid():
-            email = serializer.validated_data['email']
-            data = utils.process_code(email)
-            email_utils.send_forget_password_email(email, data)
+            mobile = serializer.validated_data['mobile']
+            user = auth_utils.get_user_by_mobile(mobile)
+            ip, user_agent = auth_utils.get_client_info(request)
+            user_confirmation = otp_utils.create_user_confirmation(user, ip)
+            otp_utils.send_otp(user_confirmation)
             return Response({'detail': _("Verification code has been sent")}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -151,18 +155,19 @@ class ForgetPasswordConfirmAPI(APIView):
             data=request.data, context={"request": self.request}
         )
         if serializer.is_valid():
-            email = serializer.validated_data['email']
+            mobile = serializer.validated_data['mobile']
             code = serializer.validated_data['code']
             password = serializer.validated_data['password']
-            confirmation = utils.get_code(email, code)
-            if confirmation.confirmation_code == code:
+            user = auth_utils.get_user_by_mobile(mobile)
+            try:
+                confirmation = otp_utils.get_code(user, code)
                 confirmation.is_used = True
                 confirmation.save()
-                user = utils.get_user(email=email)
                 user.set_password(password)
                 user.save()
                 return Response({'detail': _("Password has been changed")}, status=status.HTTP_200_OK)
-            return Response({"detail": "Invalid Code"}, status=status.HTTP_400_BAD_REQUEST)
+            except ObjectDoesNotExist:
+                return Response({"detail": "Invalid Code"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -184,19 +189,18 @@ class AccountVerifyAPI(APIView):
     def post(self, request):
         serializer = serializers.AccountVerifySerializer(data=request.data, context={"request": self.request})
         if serializer.is_valid():
-            email = serializer.validated_data['email']
+            mobile = serializer.validated_data['mobile']
             code = serializer.validated_data['code']
-            user = utils.get_user(email)
-            confirmation = utils.get_code(email, code)
-            if confirmation.confirmation_code == code:
+            user = auth_utils.get_user_by_mobile(mobile)
+            try:
+                confirmation = otp_utils.get_code(user, code)
                 user.is_verified = True
                 user.save()
                 confirmation.is_used = True
                 confirmation.save()
-                if user.is_client:
-                    email_utils.send_pending_approval_email(email, {})
-                return Response({"detail": "Account verified successfully"}, status=status.HTTP_200_OK)
-            return Response({"detail": "Invalid Verification Code"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"detail": _("Account verified successfully")}, status=status.HTTP_200_OK)
+            except ObjectDoesNotExist:
+                return Response({"detail": _("Invalid Verification Code")}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -210,9 +214,11 @@ class ResendVerificationAPI(APIView):
     def post(self, request):
         serializer = serializers.ResendVerificationSerializer(data=request.data, context={"request": self.request})
         if serializer.is_valid():
-            email = serializer.validated_data['email']
-            data = utils.process_code(email)
-            email_utils.send_account_verify_email(email, data)
+            mobile = serializer.validated_data['mobile']
+            user = auth_utils.get_user_by_mobile(mobile)
+            ip, user_agent = auth_utils.get_client_info(request)
+            user_confirmation = otp_utils.create_user_confirmation(user, ip)
+            otp_utils.send_otp(user_confirmation)
             return Response({'detail': _("Verification code has been sent")}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -228,8 +234,20 @@ class UploadDocumentsAPI(APIView):
             data=request.data, context={"request": self.request}
         )
         if serializer.is_valid():
-            doc = serializer.save(owner=self.request.user)
-            return Response({
-                'detail': _(f"{doc.get_doc_type_display} uploaded successfully")
-            }, status=status.HTTP_200_OK)
+            serializer.save(owner=self.request.user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OTPCheckAPI(APIView):
+    permission_classes = [AllowAny, ]
+
+    @extend_schema(
+        request=serializers.AccountVerifySerializer,
+        responses={200: serializers.AccountVerifySerializer},
+    )
+    def post(self, request):
+        serializer = serializers.AccountVerifySerializer(data=request.data, context={"request": self.request})
+        if serializer.is_valid():
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

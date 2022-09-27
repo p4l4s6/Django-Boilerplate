@@ -12,9 +12,11 @@ urlpatterns = [
     path('delete/', views.DeleteAccountAPI.as_view(), name='delete-account'),
     path('profile/', views.ProfileAPI.as_view(), name='profile'),
     path('verification/resend/', views.ResendVerificationAPI.as_view(), name='resend-verification'),
+    path('verification/check/', views.OTPCheckAPI.as_view(), name='otp-check'),
     path('account/verify/', views.AccountVerifyAPI.as_view(), name='account-verify'),
     path('change/password/', views.PasswordChangeAPI.as_view(), name='change-password'),
     path('forget/password/', views.ForgetPasswordAPI.as_view(), name='forget-password'),
     path('forget/password/confirm/', views.ForgetPasswordConfirmAPI.as_view(), name='forget-password-confirm'),
+    path('documents/upload/', views.UploadDocumentsAPI.as_view(), name='forget-password-confirm'),
 ]
 urlpatterns += router.urls

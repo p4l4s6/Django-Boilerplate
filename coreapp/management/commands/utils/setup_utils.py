@@ -1,7 +1,8 @@
 import json
 import os
 
-from coreapp.models import Country
+from utility.models import GlobalSettings
+from ....models import Country, Document
 
 GEO_DATA = "data/countries.json"
 
@@ -21,7 +22,9 @@ def load_geo_json():
         for data in countries_json:
             country = Country(
                 name=data['name'],
-                code=data['code']
+                code=data['isoCode'],
+                phone_code=data['dialCode'],
+                flag=data['flag']
             )
             countries.append(country)
         Country.objects.bulk_create(countries)
