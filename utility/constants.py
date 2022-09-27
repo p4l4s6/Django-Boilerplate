@@ -22,3 +22,4 @@ class PaymentStatus(models.IntegerChoices):
 class PaymentMethod(models.IntegerChoices):
     PAYPAL = 0, _("Paypal")
     BILLPLZ = 1, _("BillPlz")
+    CASH = 2, _("Cash")

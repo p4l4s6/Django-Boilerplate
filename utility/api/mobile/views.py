@@ -9,9 +9,8 @@ from rest_framework.views import APIView
 
 from . import serializers
 from .. import filters
-from ..admin.serializers import NewsListSerializer, NewsSerializer
 from ... import constants
-from ...models import GlobalSettings, Page, News, Notification
+from ...models import GlobalSettings, Page
 from ...utils import payment_utils
 from coreapp.utils.auth_utils import get_client_info
 

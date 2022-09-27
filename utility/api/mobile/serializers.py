@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ...models import GlobalSettings, Page, Payment, Notification
+from ...models import GlobalSettings, Page, Payment
 
 
 class InfoSerializer(serializers.ModelSerializer):
