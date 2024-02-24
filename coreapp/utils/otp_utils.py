@@ -3,7 +3,6 @@ import random
 from django.core.exceptions import ObjectDoesNotExist
 
 from coreapp.models import UserConfirmation
-from .twilio_utils import send_otp_via_sms
 
 
 def generate_code(user):
